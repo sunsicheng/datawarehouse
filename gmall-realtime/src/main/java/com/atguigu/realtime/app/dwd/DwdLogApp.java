@@ -37,7 +37,7 @@ import java.util.List;
  */
 public class DwdLogApp extends BaseApp {
     public static void main(String[] args) throws Exception {
-        new DwdLogApp().init(1, "ods_log", "test01", "dwdlogapp");
+        new DwdLogApp().init(20001,1, "ods_log", "test01", "dwdlogapp");
     }
 
     @Override

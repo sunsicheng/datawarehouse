@@ -14,11 +14,11 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
  * @date 2022/3/30 21:18
  */
 public abstract class BaseApp {
-    public void init(int parallelism, String topic, String groupId,String ck) {
+    public void init(int port ,int parallelism, String topic, String groupId,String ck) {
         //设置操作用户，操作HDFS
         System.setProperty("HADOOP_USER_NAME", "atguigu");
         Configuration conf = new Configuration();
-        conf.setInteger("rest.port", 10000);
+        conf.setInteger("rest.port", port);
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(conf);
         env.setParallelism(parallelism);
         //ck模式为精准一次
