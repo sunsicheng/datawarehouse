@@ -1,6 +1,9 @@
 package com.atguigu.realtime.util;
 
+import com.alibaba.fastjson.JSONObject;
+import com.atguigu.realtime.bean.TableProcess;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
@@ -38,6 +41,33 @@ public class KafkaUtils {
                     }
                 },
                 properties,
+                FlinkKafkaProducer.Semantic.EXACTLY_ONCE
+        );
+
+    }
+
+
+    /***
+     * 动态根据数据，写到不同的topic
+     * @return
+     */
+    public static FlinkKafkaProducer<Tuple2<JSONObject, TableProcess>> kafkaSinkAuto() {
+        Properties props = new Properties();
+        props.setProperty("bootstrap.servers", "hadoop162:9092,hadoop163:9092,hadoop164:9092");
+        //如果15分钟没有更新状态，则超时 默认1分钟
+        props.setProperty("transaction.timeout.ms", 1000 * 60 * 15 + "");
+
+        return new FlinkKafkaProducer<Tuple2<JSONObject,TableProcess>>(
+                "default",
+                new KafkaSerializationSchema<Tuple2<JSONObject,TableProcess>>() {
+                    @Override
+                    public ProducerRecord<byte[], byte[]> serialize(Tuple2<JSONObject, TableProcess> element, @Nullable Long timestamp) {
+                        String topic = element.f1.getSinkTable();
+                        return new ProducerRecord<>(topic,element.f0.toJSONString().getBytes());
+                    }
+                }
+                ,
+                props,
                 FlinkKafkaProducer.Semantic.EXACTLY_ONCE
         );
 

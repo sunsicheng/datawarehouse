@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONValidator;
 import com.atguigu.realtime.app.BaseApp;
 import com.atguigu.realtime.bean.TableProcess;
+import com.atguigu.realtime.util.KafkaUtils;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.ReadOnlyBroadcastState;
@@ -42,7 +43,8 @@ public class DwdDbApp extends BaseApp implements Serializable {
         SingleOutputStreamOperator<JSONObject> etlStream = etl(ds);
         //分流。
         SingleOutputStreamOperator<Tuple2<JSONObject, TableProcess>> dynamicSplitStream = dynamicSplit(processStream, etlStream);
-        dynamicSplitStream.print("kafka");
+        //数据写入kafka,dwd层
+        dynamicSplitStream.addSink(KafkaUtils.kafkaSinkAuto());
         dynamicSplitStream.getSideOutput(hbaseTag).print("hbase");
 
     }
