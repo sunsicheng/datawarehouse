@@ -66,7 +66,7 @@ public class DwdDbApp extends BaseApp implements Serializable {
         // 1. 先在hbase中建表
 
         stream.
-                keyBy(x -> x.f1.getSinkTable())
+                keyBy(x -> x.f1.getSinkTable())     //keyBy保证发往同一个hbase表的数据到同一个task
                 .addSink(new RichSinkFunction<Tuple2<JSONObject, TableProcess>>() {
 
                     private ValueState<Boolean> flag;
@@ -83,6 +83,35 @@ public class DwdDbApp extends BaseApp implements Serializable {
                     @Override
                     public void invoke(Tuple2<JSONObject, TableProcess> value, Context context) throws Exception {
                         checkTableIfExists(value);
+
+                        write2Hbase(value);
+                    }
+
+                    private void write2Hbase(Tuple2<JSONObject, TableProcess> value) throws SQLException {
+                        JSONObject data = value.f0.getJSONObject("data");
+                        TableProcess tableProcess = value.f1;
+                        //upsert into test.Person (IDCardNum,Name,Age) values (100,'小明',12);
+                        StringBuilder sql = new StringBuilder();
+                        sql.append("upsert into ")
+                                .append(tableProcess.getSinkTable())
+                                .append("( ")
+                                .append(tableProcess.getSinkColumns())
+                                .append(") values ( ");
+
+                        //通过列名取出需要插入列的值
+                        for (String column : tableProcess.getSinkColumns().split(",")) {
+                            sql.append("'").append(data.getString(column)).append("'").append(",");
+                        }
+
+                        sql.deleteCharAt(sql.length() - 1);
+                        sql.append(")");
+
+                        PreparedStatement ps = connection.prepareStatement(sql.toString());
+                        ps.execute();
+                        //ps.addBatch();    可使用批处理提高效率
+                        connection.commit();
+                        ps.close();
+
                     }
 
                     /**
@@ -111,7 +140,6 @@ public class DwdDbApp extends BaseApp implements Serializable {
                             createSql.append(tableProcess.getSinkExtend() == null ? "" : tableProcess.getSinkExtend());
 
 
-                            System.out.println(createSql.toString());
                             PreparedStatement ps = connection.prepareStatement(createSql.toString());
                             ps.execute();
                             connection.commit();
