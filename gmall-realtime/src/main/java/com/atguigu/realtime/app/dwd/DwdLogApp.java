@@ -37,16 +37,16 @@ import java.util.List;
  */
 public class DwdLogApp extends BaseApp {
     public static void main(String[] args) throws Exception {
-        new DwdLogApp().init(20001,1, "ods_log", "test01", "dwdlogapp");
+        new DwdLogApp().init(20001, 3, "ods_log", "test07", "dwdlogapp");
     }
 
     @Override
     public void run(StreamExecutionEnvironment env, DataStreamSource<String> ds) {
         SingleOutputStreamOperator<JSONObject> disDataStream = distinguishCustomer(env, ds);
         Tuple3<SingleOutputStreamOperator<String>, DataStream, DataStream> divideStream = divideStream(disDataStream);
-        divideStream.f0.addSink(KafkaUtils.getKafkaSink("dwd_page_log"));
-        divideStream.f1.addSink(KafkaUtils.getKafkaSink("dwd_start_log"));
-        divideStream.f2.addSink(KafkaUtils.getKafkaSink("dwd_display_log"));
+        divideStream.f0.addSink(KafkaUtils.getKafkaSink("dwd_page_log")).setParallelism(1);
+        divideStream.f1.addSink(KafkaUtils.getKafkaSink("dwd_start_log")).setParallelism(1);
+        divideStream.f2.addSink(KafkaUtils.getKafkaSink("dwd_display_log")).setParallelism(1);
     }
 
     private Tuple3<SingleOutputStreamOperator<String>, DataStream, DataStream> divideStream(SingleOutputStreamOperator<JSONObject> disDataStream) {
@@ -66,14 +66,17 @@ public class DwdLogApp extends BaseApp {
                         out.collect(value.toJSONString());
                     }
 
-                    String page_id = value.getJSONObject("page").getString("page_id");
-                    Long ts = value.getLong("ts");
+
                     JSONArray displays = value.getJSONArray("displays");
-                    for (int i = 0; i < displays.size(); i++) {
-                        JSONObject dispaly = displays.getJSONObject(i);
-                        dispaly.put("page_id", page_id);
-                        dispaly.put("ts", ts);
-                        ctx.output(displayTag, dispaly.toJSONString());
+                    if (displays != null && displays.size() > 3) {
+                        for (int i = 0; i < displays.size(); i++) {
+                            JSONObject dispaly = displays.getJSONObject(i);
+                            String page_id = value.getJSONObject("page").getString("page_id");
+                            Long ts = value.getLong("ts");
+                            dispaly.put("page_id", page_id);
+                            dispaly.put("ts", ts);
+                            ctx.output(displayTag, dispaly.toJSONString());
+                        }
                     }
                 }
             }
