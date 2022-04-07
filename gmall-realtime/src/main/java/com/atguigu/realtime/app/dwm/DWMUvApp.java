@@ -30,9 +30,9 @@ import java.util.Date;
  * @version 1.0
  * @date 2022/4/5 20:44
  */
-public class UvApp extends BaseApp {
+public class DWMUvApp extends BaseApp {
     public static void main(String[] args) {
-        new UvApp().init(30001, 1, "dwd_page_log", "testUV06", "uvapp");
+        new DWMUvApp().init(30001, 1, "dwd_page_log", "testUV06", "uvapp");
     }
 
     @Override

@@ -30,10 +30,10 @@ import java.util.Map;
  * @version 1.0
  * @date 2022/4/7 21:48
  */
-public class JumpApp extends BaseApp {
+public class DWMJumpApp extends BaseApp {
 
     public static void main(String[] args) {
-        new JumpApp().init(30002, 2, "dwd_page_log", "testjumpapp01", "jumpapp");
+        new DWMJumpApp().init(30002, 2, "dwd_page_log", "testjumpapp01", "jumpapp");
     }
 
     /***

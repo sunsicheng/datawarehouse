@@ -43,6 +43,8 @@ public class DwdDbApp extends BaseApp implements Serializable {
 
     @Override
     public void run(StreamExecutionEnvironment env, DataStreamSource<String> ds) {
+        //排查问题时，可以将操作链关闭，能够排查到具体哪个算子出问题
+        //env.disableOperatorChaining();
         //读取配置表
         SingleOutputStreamOperator<TableProcess> processStream = readProcessTable(env);
 
