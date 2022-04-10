@@ -1,6 +1,5 @@
 package com.atguigu.realtime.util;
 
-import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.CaseFormat;
 import org.apache.commons.beanutils.BeanUtils;
 
@@ -67,11 +66,4 @@ public class JdbcUtils {
     }
 
 
-    public static void main(String[] args) throws SQLException, InstantiationException, IllegalAccessException {
-        String url="jdbc:phoenix:hadoop162,hadoop163,hadoop164:2181";
-        String sql="select * from DIM_USER_INFO where id=?";
-        Object[] arg={"59"};
-        List<JSONObject> list = queryList(DriverManager.getConnection(url), sql, arg, JSONObject.class, true);
-        System.out.println(list.get(0));
-    }
 }

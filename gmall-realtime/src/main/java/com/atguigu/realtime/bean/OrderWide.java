@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 
 /**
@@ -111,5 +113,19 @@ public class OrderWide {
         this.split_coupon_amount = ObjectUtils.firstNonNull(this.split_coupon_amount);
         this.split_total_amount = ObjectUtils.firstNonNull(this.split_total_amount);
     }
+
+
+    // 根据生日计算年龄
+    public void calcUserAgeByBirthday(String birthday) {
+        try {
+            final long birthdayTime = new SimpleDateFormat("yyyy-MM-dd").parse(birthday).getTime();
+            final long now = System.currentTimeMillis();
+            final long age = (now - birthdayTime) / 1000 / 60 / 60 / 24 / 365;
+            this.user_age = (int) age;
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
 
