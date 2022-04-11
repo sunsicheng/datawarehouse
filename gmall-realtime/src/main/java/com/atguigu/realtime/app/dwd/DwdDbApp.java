@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONValidator;
 import com.atguigu.realtime.app.BaseApp;
 import com.atguigu.realtime.bean.TableProcess;
+import com.atguigu.realtime.util.JedisUtils;
 import com.atguigu.realtime.util.KafkaUtils;
 import org.apache.flink.api.common.state.*;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -19,6 +20,7 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
+import redis.clients.jedis.Jedis;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -71,6 +73,7 @@ public class DwdDbApp extends BaseApp implements Serializable {
                 keyBy(x -> x.f1.getSinkTable())     //keyBy保证发往同一个hbase表的数据到同一个task
                 .addSink(new RichSinkFunction<Tuple2<JSONObject, TableProcess>>() {
 
+                    private Jedis redisClient;
                     private ValueState<Boolean> flag;
                     private Connection connection;
 
@@ -79,7 +82,7 @@ public class DwdDbApp extends BaseApp implements Serializable {
                         //创建phoenix连接
                         connection = DriverManager.getConnection(phoenixUrl);
                         flag = getRuntimeContext().getState(new ValueStateDescriptor<Boolean>("flag", Boolean.class));
-
+                        redisClient = JedisUtils.getRedisClient();
                     }
 
                     @Override
@@ -87,6 +90,12 @@ public class DwdDbApp extends BaseApp implements Serializable {
                         checkTableIfExists(value);
 
                         write2Hbase(value);
+
+                        //当数据类型为update时，删除redis之前保存的缓存
+                        if ("update".equalsIgnoreCase(value.f1.getOperateType())) {
+                            String key = value.f0.getString("table") + ":" + value.f0.getJSONObject("data").getString("id");
+                            redisClient.del("DIM_"+key.toUpperCase());
+                        }
                     }
 
                     private void write2Hbase(Tuple2<JSONObject, TableProcess> value) throws SQLException {
