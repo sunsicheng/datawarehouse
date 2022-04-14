@@ -28,7 +28,7 @@ public abstract class BaseAppV2 {
         env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         CheckpointConfig config = env.getCheckpointConfig();
         //ck超时时间
-        config.setCheckpointTimeout(60000);
+        config.setCheckpointTimeout(120000);
         //取消任务后保留ck
         env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
         //设置状态后端

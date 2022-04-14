@@ -1,6 +1,7 @@
 package com.atguigu.realtime.app.dwm;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONValidator;
 import com.atguigu.realtime.app.BaseAppV2;
 import com.atguigu.realtime.bean.OrderDetail;
 import com.atguigu.realtime.bean.OrderInfo;
@@ -8,6 +9,7 @@ import com.atguigu.realtime.bean.OrderWide;
 import com.atguigu.realtime.util.JdbcUtils;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.configuration.Configuration;
@@ -38,10 +40,10 @@ public class DWMOrderWide extends BaseAppV2 {
     @Override
     public void run(StreamExecutionEnvironment env, Map<String, DataStreamSource<String>> ds) {
 
+        env.disableOperatorChaining();
         DataStreamSource<String> dwd_order_detail = ds.get("dwd_order_detail");
         DataStreamSource<String> dwd_order_info = ds.get("dwd_order_info");
         SingleOutputStreamOperator<OrderWide> wideStream = factStreamJoin(dwd_order_info, dwd_order_detail);
-        //wideStream.print();
         joinDim(wideStream).print();
 
 
@@ -128,36 +130,44 @@ public class DWMOrderWide extends BaseAppV2 {
      * @return
      */
     private SingleOutputStreamOperator<OrderWide> factStreamJoin(DataStreamSource<String> dwd_order_info, DataStreamSource<String> dwd_order_detail) {
-        KeyedStream<OrderDetail, Long> orderDetailLongKeyedStream = dwd_order_detail.map(new MapFunction<String, OrderDetail>() {
-            @Override
-            public OrderDetail map(String value) throws Exception {
-                return JSONObject.parseObject(value, OrderDetail.class);
-            }
-        }).assignTimestampsAndWatermarks(WatermarkStrategy
-                .<OrderDetail>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-                .withTimestampAssigner(new SerializableTimestampAssigner<OrderDetail>() {
+        KeyedStream<OrderDetail, Long> orderDetailLongKeyedStream = dwd_order_detail.
+                flatMap(new FlatMapFunction<String, OrderDetail>() {
                     @Override
-                    public long extractTimestamp(OrderDetail element, long recordTimestamp) {
-                        return element.getCreate_ts();
+                    public void flatMap(String value, Collector<OrderDetail> out) throws Exception {
+                        if (JSONValidator.from(value).validate()) {
+                            out.collect(JSONObject.parseObject(value, OrderDetail.class));
+                        }
                     }
-                })
-        ).keyBy(x -> x.getOrder_id());
+                }).
+                assignTimestampsAndWatermarks(WatermarkStrategy
+                        .<OrderDetail>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+                        .withTimestampAssigner(new SerializableTimestampAssigner<OrderDetail>() {
+                            @Override
+                            public long extractTimestamp(OrderDetail element, long recordTimestamp) {
+                                return element.getCreate_ts();
+                            }
+                        })
+                ).keyBy(x -> x.getOrder_id());
 
 
-        KeyedStream<OrderInfo, Long> orderInfoLongKeyedStream = dwd_order_info.map(new MapFunction<String, OrderInfo>() {
-            @Override
-            public OrderInfo map(String value) throws Exception {
-                return JSONObject.parseObject(value, OrderInfo.class);
-            }
-        }).assignTimestampsAndWatermarks(WatermarkStrategy
-                .<OrderInfo>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-                .withTimestampAssigner(new SerializableTimestampAssigner<OrderInfo>() {
+        KeyedStream<OrderInfo, Long> orderInfoLongKeyedStream = dwd_order_info
+                .flatMap(new FlatMapFunction<String, OrderInfo>() {
                     @Override
-                    public long extractTimestamp(OrderInfo element, long recordTimestamp) {
-                        return element.getCreate_ts();
+                    public void flatMap(String value, Collector<OrderInfo> out) throws Exception {
+                        if (JSONValidator.from(value).validate()) {
+                            out.collect(JSONObject.parseObject(value, OrderInfo.class));
+                        }
                     }
                 })
-        ).keyBy(x -> x.getId());
+                .assignTimestampsAndWatermarks(WatermarkStrategy
+                        .<OrderInfo>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+                        .withTimestampAssigner(new SerializableTimestampAssigner<OrderInfo>() {
+                            @Override
+                            public long extractTimestamp(OrderInfo element, long recordTimestamp) {
+                                return element.getCreate_ts();
+                            }
+                        })
+                ).keyBy(x -> x.getId());
 
         SingleOutputStreamOperator<OrderWide> wideStream = orderInfoLongKeyedStream
                 .intervalJoin(orderDetailLongKeyedStream)

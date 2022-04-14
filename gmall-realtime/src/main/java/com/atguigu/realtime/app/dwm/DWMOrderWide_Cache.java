@@ -35,7 +35,8 @@ import java.util.Map;
 public class DWMOrderWide_Cache extends BaseAppV2 {
 
     public static void main(String[] args) {
-        new DWMOrderWide_Cache().init(30003, 1, "testdwmorderwide01", "dwmorderwide", "dwd_order_info", "dwd_order_detail");
+        new DWMOrderWide_Cache().init(30004, 1, "testdwmorderwide01", "dwmorderwide", "dwd_order_info",
+                "dwd_order_detail");
     }
 
     @Override
@@ -44,7 +45,6 @@ public class DWMOrderWide_Cache extends BaseAppV2 {
         DataStreamSource<String> dwd_order_detail = ds.get("dwd_order_detail");
         DataStreamSource<String> dwd_order_info = ds.get("dwd_order_info");
         SingleOutputStreamOperator<OrderWide> wideStream = factStreamJoin(dwd_order_info, dwd_order_detail);
-        //wideStream.print();
         joinDim(wideStream).print();
 
 
@@ -67,11 +67,9 @@ public class DWMOrderWide_Cache extends BaseAppV2 {
                         //首次查询数据库，结果保存至缓存，之后直接查询缓存
                         String key = tableName + ":" + args[0];
                         if (redisClient.exists(key)) {
-                            System.out.println(tableName+"的id"+key+" 走了缓存");
                             String value = redisClient.get(key);
                             return JSON.parseObject(value);
                         } else {
-                            System.out.println(tableName+"的id"+key+" 走了数据库");
                             String sql = "select * from " + tableName + " where ID=?  ";
                             JSONObject jsonObject = JdbcUtils.queryList(connection, sql, args, JSONObject.class, false).get(0);
                             //将结果保存至缓存

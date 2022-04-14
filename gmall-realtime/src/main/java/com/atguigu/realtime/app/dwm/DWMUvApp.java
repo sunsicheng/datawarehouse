@@ -3,6 +3,7 @@ package com.atguigu.realtime.app.dwm;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONValidator;
 import com.atguigu.realtime.app.BaseApp;
+import com.atguigu.realtime.util.KafkaUtils;
 import com.google.common.collect.Lists;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -11,6 +12,7 @@ import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
@@ -37,7 +39,7 @@ public class DWMUvApp extends BaseApp {
 
     @Override
     public void run(StreamExecutionEnvironment env, DataStreamSource<String> ds) {
-        ds.flatMap(new FlatMapFunction<String, JSONObject>() {
+        SingleOutputStreamOperator<JSONObject> dwm_uv = ds.flatMap(new FlatMapFunction<String, JSONObject>() {
             @Override
             public void flatMap(String value, Collector<JSONObject> out) throws Exception {
                 if (JSONValidator.from(value).validate()) {
@@ -91,8 +93,11 @@ public class DWMUvApp extends BaseApp {
 
                         }
                     }
-                })
-                .print();
+                });
+
+        dwm_uv
+                .map(x->x.toJSONString())
+                .addSink(KafkaUtils.getKafkaSink("dwm_uv"));
 
 
     }
