@@ -56,7 +56,7 @@ public class DWMOrderWide_Cache_Async extends BaseAppV2 {
         SingleOutputStreamOperator<OrderWide> orderWideStreamDim = joinDim(wideStream);
         orderWideStreamDim.print();
         orderWideStreamDim
-                .map(OrderWide::toString)
+                .map(x-> JSON.toJSONString(x))
                 .addSink(KafkaUtils.getKafkaSink("dwm_orderwide"));
 
     }
