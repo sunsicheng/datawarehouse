@@ -85,8 +85,7 @@ public class DWMUvApp extends BaseApp {
 
                             //  优化1 当到了第二天凌晨watermark更新，但是昨天最后一个窗口还未关闭，最后那个窗口将重复写出
                             //  优化2 防止第一次登录时间为当天最后一个窗口，数据不写入
-                            if (nowWM.equals(simpleDateFormat.format(new Date(uvstate
-                                    .value()))) || uvstate.value() == null) {
+                            if (uvstate.value() == null || nowWM.equals(simpleDateFormat.format(new Date(uvstate.value())))) {
                                 out.collect(min);
                                 uvstate.update(min.getLong("ts"));
                             }
@@ -95,8 +94,9 @@ public class DWMUvApp extends BaseApp {
                     }
                 });
 
+        dwm_uv.print();
         dwm_uv
-                .map(x->x.toJSONString())
+                .map(x -> x.toJSONString())
                 .addSink(KafkaUtils.getKafkaSink("dwm_uv"));
 
 

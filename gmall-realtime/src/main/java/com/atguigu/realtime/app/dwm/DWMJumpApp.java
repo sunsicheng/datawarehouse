@@ -98,6 +98,7 @@ public class DWMJumpApp extends BaseApp {
 
         );
 
+        stream.getSideOutput(lateTag).print();
         stream.getSideOutput(lateTag).map(x->x.toJSONString()).addSink(KafkaUtils.getKafkaSink("dwm_user_jump_detail")).setParallelism(1);
     }
 }
