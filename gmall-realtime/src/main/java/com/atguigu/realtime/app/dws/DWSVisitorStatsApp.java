@@ -3,6 +3,7 @@ package com.atguigu.realtime.app.dws;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.realtime.app.BaseAppV2;
 import com.atguigu.realtime.bean.VisitorStats;
+import com.atguigu.realtime.util.MyJdbcSink;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -50,7 +51,8 @@ public class DWSVisitorStatsApp extends BaseAppV2 {
         //对流进行累加
         SingleOutputStreamOperator<VisitorStats> aggrateStream = aggrateStream(visitorStatsDataStream);
 
-         aggrateStream.print();
+        aggrateStream.print();
+        aggrateStream.addSink(MyJdbcSink.getClickhouseSink("gmall2021", "visitor_stats_2021", VisitorStats.class));
 
 
     }
