@@ -1,6 +1,7 @@
 package com.atguigu.realtime.util;
 
 import com.atguigu.realtime.bean.OrderDetail;
+import com.atguigu.realtime.bean.SinkTranslate;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcSink;
 import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
@@ -33,7 +34,7 @@ public class MyJdbcSink {
                 .append(table)
                 .append("( ");
         for (Field declaredField : clazz.getDeclaredFields()) {
-            if (!Modifier.isTransient(declaredField.getModifiers())) {
+            if (declaredField.getAnnotation(SinkTranslate.class)==null) {
                 builder.append(declaredField.getName()).append(",");
             }
         }
@@ -43,7 +44,7 @@ public class MyJdbcSink {
         builder.append(" ) values ( ");
 
         for (Field declaredField : clazz.getDeclaredFields()) {
-            if (!Modifier.isTransient(declaredField.getModifiers())) {
+            if (declaredField.getAnnotation(SinkTranslate.class)==null) {
                 builder.append("?,");
             }
         }
@@ -67,7 +68,7 @@ public class MyJdbcSink {
                     public void accept(PreparedStatement preparedStatement, T t) throws SQLException {
                         Field[] declaredFields = t.getClass().getDeclaredFields();
                         for (int i = 0,position=1; i < declaredFields.length; i++) {
-                            if (!Modifier.isTransient(declaredFields[i].getModifiers())) {
+                            if (declaredFields[i].getAnnotation(SinkTranslate.class)==null) {
                                 try {
                                     //使用postion，避免因为有transit字段导致顺序错乱
                                     declaredFields[i].setAccessible(true);

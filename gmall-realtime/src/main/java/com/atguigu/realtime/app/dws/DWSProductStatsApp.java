@@ -8,6 +8,7 @@ import com.atguigu.realtime.bean.PaymentWide;
 import com.atguigu.realtime.bean.ProductStats;
 import com.atguigu.realtime.common.GmallConstant;
 import com.atguigu.realtime.util.DimAsyncJoinUtils;
+import com.atguigu.realtime.util.MyJdbcSink;
 import com.atguigu.realtime.util.MyTimeUtils;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -53,7 +54,12 @@ public class DWSProductStatsApp extends BaseAppV2 {
         DataStream<ProductStats> productStatsDataStream = parseStream(ds);
         SingleOutputStreamOperator<ProductStats> keyProductStatsDataStream = aggregateByDim(productStatsDataStream);
         SingleOutputStreamOperator<ProductStats> streamWithDim = addDims(keyProductStatsDataStream);
-        streamWithDim.print();
+        streamWithDim.print("streamWithDim");
+        writeToClickHouse(streamWithDim);
+    }
+
+    private void writeToClickHouse(SingleOutputStreamOperator<ProductStats> streamWithDim) {
+        streamWithDim.addSink(MyJdbcSink.getClickhouseSink("gmall2021", "product_stats_2021", ProductStats.class));
     }
 
     private SingleOutputStreamOperator<ProductStats> addDims(SingleOutputStreamOperator<ProductStats> productStatsSingleOutputStreamOperator) {
@@ -82,6 +88,7 @@ public class DWSProductStatsApp extends BaseAppV2 {
                         // 4. 读取三级品类
                         final JSONObject c3Info = readDim(redisClient, "DIM_BASE_CATEGORY3", input.getCategory3_id().toString());
                         input.setCategory3_name(c3Info.getString("NAME"));
+
                     }
                 },
                 30,
@@ -101,8 +108,8 @@ public class DWSProductStatsApp extends BaseAppV2 {
                     }
                 })
         ).keyBy(x -> x.getSku_id());
-       // productStatsDataStream.print("keyed");
-       return  productStatsLongKeyedStream.window(TumblingEventTimeWindows.of(Time.seconds(10)))
+        // productStatsDataStream.print("keyed");
+        return productStatsLongKeyedStream.window(TumblingEventTimeWindows.of(Time.seconds(10)))
                 .reduce(new ReduceFunction<ProductStats>() {
                     @Override
                     public ProductStats reduce(ProductStats value1, ProductStats value2) throws Exception {
@@ -224,7 +231,6 @@ public class DWSProductStatsApp extends BaseAppV2 {
                     ps.setSku_id(orderWide.getSku_id());
                     ps.setTs(MyTimeUtils.toTs(orderWide.getCreate_time()));
                     ps.getOrderIdSet().add(orderWide.getOrder_id());
-                    System.out.println(ps.getOrderIdSet());
                     ps.setOrder_amount(orderWide.getSplit_total_amount());
                     ps.setOrder_sku_num(orderWide.getSku_num());
 
