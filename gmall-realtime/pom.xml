@@ -209,6 +209,11 @@
             <version>4.5</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>flink-connector-clickhouse</artifactId>
+            <version>1.11.0</version>
+        </dependency>
 
 
 
